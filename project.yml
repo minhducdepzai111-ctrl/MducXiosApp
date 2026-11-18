@@ -7,8 +7,11 @@ targets:
   MducXiosApp:
     type: application
     platform: iOS
-    sources: 
-      - "**/*.swift"
+    sources:
+      - path: Sources/AppDelegate.swift
+      - path: Sources/SceneDelegate.swift
+      - path: Sources/MainViewController.swift
+      - path: Sources/LicenseManager.swift
     info:
       path: Info.plist
     settings:
