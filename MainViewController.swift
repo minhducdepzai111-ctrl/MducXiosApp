@@ -1,21 +1,20 @@
 import UIKit
 
-class MainViewController: UIViewController {
+class MainViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
-    // MARK: - UI
-    private let backgroundImageView: UIImageView = {
+    // MARK: - UI Components
+    private let backgroundGradient = CAGradientLayer()
+    
+    // Phần Header
+    private let appIconView: UIImageView = {
         let iv = UIImageView()
-        iv.contentMode = .scaleAspectFill
-        iv.backgroundColor = .black
+        iv.image = UIImage(systemName: "flame.fill") // Tạm dùng icon lửa
+        iv.tintColor = .systemOrange
+        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.layer.cornerRadius = 20
+        iv.clipsToBounds = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
-    }()
-    
-    private let overlayView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0.05, alpha: 0.85)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
     }()
     
     private let titleLabel: UILabel = {
@@ -28,31 +27,53 @@ class MainViewController: UIViewController {
         return label
     }()
     
+    private let bundleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "com.garena.ffvn"
+        label.font = UIFont.systemFont(ofSize: 12)
+        label.textColor = .lightGray
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    // Thanh chọn AIM / Định vị / MOD
     private let segmentedControl: UISegmentedControl = {
         let items = ["⦿ AIM", "📍 Định vị", "⚙️ MOD"]
         let sc = UISegmentedControl(items: items)
         sc.selectedSegmentIndex = 2
         sc.backgroundColor = UIColor(white: 0.1, alpha: 0.8)
-        sc.selectedSegmentTintColor = .systemBlue
-        sc.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
-        sc.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+        sc.selectedSegmentTintColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
+        sc.setTitleTextAttributes([.foregroundColor: UIColor.white, .font: UIFont.boldSystemFont(ofSize: 14)], for: .normal)
+        sc.setTitleTextAttributes([.foregroundColor: UIColor.white, .font: UIFont.boldSystemFont(ofSize: 14)], for: .selected)
         sc.translatesAutoresizingMaskIntoConstraints = false
         return sc
     }()
     
-    private let menuTitleLabel: UILabel = {
+    // Khung Menu Patch
+    private let menuContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(red: 0.1, green: 0.0, blue: 0.15, alpha: 0.8)
+        view.layer.cornerRadius = 16
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor(white: 0.3, alpha: 0.5).cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let menuTitle: UILabel = {
         let label = UILabel()
         label.text = "⚙️ MENU PATCH"
-        label.font = UIFont.boldSystemFont(ofSize: 18)
+        label.font = UIFont.boldSystemFont(ofSize: 16)
         label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    private let autoLabel: UILabel = {
+    private let autoBadge: UILabel = {
         let label = UILabel()
         label.text = "AUTO"
-        label.font = UIFont.boldSystemFont(ofSize: 12)
+        label.font = UIFont.boldSystemFont(ofSize: 10)
         label.textColor = .systemBlue
         label.textAlignment = .center
         label.layer.borderWidth = 1
@@ -72,15 +93,28 @@ class MainViewController: UIViewController {
         return tv
     }()
     
+    // Nút Mở Ứng Dụng
     private let launchButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("▶ Mở ứng dụng", for: .normal)
         btn.setTitleColor(.white, for: .normal)
         btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-        btn.backgroundColor = .systemBlue
-        btn.layer.cornerRadius = 12
+        btn.layer.cornerRadius = 25
+        btn.clipsToBounds = true
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
+    }()
+    private let launchGradient = CAGradientLayer()
+    
+    // Thanh Tabbar dưới cùng (Home / Apps)
+    private let bottomBar: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(red: 0.1, green: 0.05, blue: 0.2, alpha: 0.95)
+        view.layer.cornerRadius = 30
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor(white: 0.3, alpha: 0.5).cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
     
     // MARK: - Data
@@ -91,111 +125,135 @@ class MainViewController: UIViewController {
         ("AVATA AIM BOT", "Bật lúc vào game Load 40%")
     ]
     
-    private var hasCheckedLicense = false
-    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupBackground()
         setupUI()
+        
         tableView.delegate = self
         tableView.dataSource = self
         launchButton.addTarget(self, action: #selector(handleLaunch), for: .touchUpInside)
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        // Kiểm tra license khi màn hình hiện lên
-        if !hasCheckedLicense {
-            hasCheckedLicense = true
-            checkLicenseStatus()
-        }
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        backgroundGradient.frame = view.bounds
+        launchGradient.frame = launchButton.bounds
     }
     
-    // MARK: - License Logic
-    private func checkLicenseStatus() {
-        let savedKey = UserDefaults.standard.string(forKey: "MducXios_SavedKey")
-        if savedKey == nil {
-            showKeyPrompt()
-        }
+    // MARK: - Setup UI
+    private func setupBackground() {
+        // Nền tím đen giống ảnh
+        backgroundGradient.colors = [
+            UIColor(red: 0.2, green: 0.0, blue: 0.3, alpha: 1.0).cgColor,
+            UIColor.black.cgColor
+        ]
+        backgroundGradient.locations = [0.0, 1.0]
+        view.layer.addSublayer(backgroundGradient)
     }
     
-    private func showKeyPrompt() {
-        let alert = UIAlertController(title: "KÍCH HOẠT KEY", message: "Nhập Key MducXios để sử dụng", preferredStyle: .alert)
-        alert.addTextField { tf in
-            tf.placeholder = "Nhập Key..."
-            tf.autocapitalizationType = .none
-        }
-        
-        let activeAction = UIAlertAction(title: "Kích hoạt", style: .default) { [weak self] _ in
-            guard let key = alert.textFields?.first?.text, !key.isEmpty else { return }
-            
-            LicenseManager.shared.checkLicense(key: key) { success, msg, deviceId in
-                if success {
-                    UserDefaults.standard.set(key, forKey: "MducXios_SavedKey")
-                    let okAlert = UIAlertController(title: "Thành công", message: "Hạn dùng: \(msg)", preferredStyle: .alert)
-                    okAlert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self?.present(okAlert, animated: true)
-                } else {
-                    let errAlert = UIAlertController(title: "Lỗi", message: msg, preferredStyle: .alert)
-                    errAlert.addAction(UIAlertAction(title: "Thử lại", style: .default, handler: { _ in
-                        self?.showKeyPrompt()
-                    }))
-                    self?.present(errAlert, animated: true)
-                }
-            }
-        }
-        
-        alert.addAction(activeAction)
-        self.present(alert, animated: true)
-    }
-
     private func setupUI() {
-        view.backgroundColor = .black
-        view.addSubview(backgroundImageView)
-        view.addSubview(overlayView)
+        view.addSubview(appIconView)
         view.addSubview(titleLabel)
+        view.addSubview(bundleLabel)
         view.addSubview(segmentedControl)
-        view.addSubview(menuTitleLabel)
-        view.addSubview(autoLabel)
-        view.addSubview(tableView)
+        view.addSubview(menuContainer)
+        menuContainer.addSubview(menuTitle)
+        menuContainer.addSubview(autoBadge)
+        menuContainer.addSubview(tableView)
         view.addSubview(launchButton)
+        view.addSubview(bottomBar)
+        
+        // Gradient cho nút mở app
+        launchGradient.colors = [UIColor.systemBlue.cgColor, UIColor.cyan.cgColor]
+        launchGradient.startPoint = CGPoint(x: 0, y: 0.5)
+        launchGradient.endPoint = CGPoint(x: 1, y: 0.5)
+        launchButton.layer.insertSublayer(launchGradient, at: 0)
+        
+        // Setup Tabbar fake (chỉ để giống ảnh)
+        let homeIcon = UIImageView(image: UIImage(systemName: "house.fill"))
+        homeIcon.tintColor = .white
+        homeIcon.translatesAutoresizingMaskIntoConstraints = false
+        let homeLabel = UILabel()
+        homeLabel.text = "Home"
+        homeLabel.textColor = .white
+        homeLabel.font = UIFont.systemFont(ofSize: 10)
+        homeLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let appsIcon = UIImageView(image: UIImage(systemName: "square.grid.2x2.fill"))
+        appsIcon.tintColor = .systemBlue
+        appsIcon.translatesAutoresizingMaskIntoConstraints = false
+        let appsLabel = UILabel()
+        appsLabel.text = "Apps"
+        appsLabel.textColor = .systemBlue
+        appsLabel.font = UIFont.systemFont(ofSize: 10)
+        appsLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        bottomBar.addSubview(homeIcon)
+        bottomBar.addSubview(homeLabel)
+        bottomBar.addSubview(appsIcon)
+        bottomBar.addSubview(appsLabel)
         
         NSLayoutConstraint.activate([
-            backgroundImageView.topAnchor.constraint(equalTo: view.topAnchor),
-            backgroundImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            backgroundImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            backgroundImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            // Header
+            appIconView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            appIconView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            appIconView.widthAnchor.constraint(equalToConstant: 80),
+            appIconView.heightAnchor.constraint(equalToConstant: 80),
             
-            overlayView.topAnchor.constraint(equalTo: view.topAnchor),
-            overlayView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            overlayView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            overlayView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            titleLabel.topAnchor.constraint(equalTo: appIconView.bottomAnchor, constant: 10),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             
-            segmentedControl.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            bundleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            bundleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            
+            // Segmented
+            segmentedControl.topAnchor.constraint(equalTo: bundleLabel.bottomAnchor, constant: 20),
             segmentedControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             segmentedControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             segmentedControl.heightAnchor.constraint(equalToConstant: 44),
             
-            menuTitleLabel.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 30),
-            menuTitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            // Menu Container
+            menuContainer.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 20),
+            menuContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            menuContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            menuContainer.bottomAnchor.constraint(equalTo: launchButton.topAnchor, constant: -20),
             
-            autoLabel.centerYAnchor.constraint(equalTo: menuTitleLabel.centerYAnchor),
-            autoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            autoLabel.widthAnchor.constraint(equalToConstant: 60),
-            autoLabel.heightAnchor.constraint(equalToConstant: 24),
+            menuTitle.topAnchor.constraint(equalTo: menuContainer.topAnchor, constant: 15),
+            menuTitle.leadingAnchor.constraint(equalTo: menuContainer.leadingAnchor, constant: 15),
             
-            tableView.topAnchor.constraint(equalTo: menuTitleLabel.bottomAnchor, constant: 10),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            tableView.bottomAnchor.constraint(equalTo: launchButton.topAnchor, constant: -20),
+            autoBadge.centerYAnchor.constraint(equalTo: menuTitle.centerYAnchor),
+            autoBadge.trailingAnchor.constraint(equalTo: menuContainer.trailingAnchor, constant: -15),
+            autoBadge.widthAnchor.constraint(equalToConstant: 50),
+            autoBadge.heightAnchor.constraint(equalToConstant: 20),
             
-            launchButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            tableView.topAnchor.constraint(equalTo: menuTitle.bottomAnchor, constant: 10),
+            tableView.leadingAnchor.constraint(equalTo: menuContainer.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: menuContainer.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: menuContainer.bottomAnchor, constant: -10),
+            
+            // Launch Button
+            launchButton.bottomAnchor.constraint(equalTo: bottomBar.topAnchor, constant: -15),
             launchButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             launchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            launchButton.heightAnchor.constraint(equalToConstant: 50)
+            launchButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            // Bottom Bar
+            bottomBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
+            bottomBar.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            bottomBar.widthAnchor.constraint(equalToConstant: 200),
+            bottomBar.heightAnchor.constraint(equalToConstant: 60),
+            
+            homeIcon.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor, constant: -5),
+            homeIcon.centerXAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 50),
+            homeLabel.topAnchor.constraint(equalTo: homeIcon.bottomAnchor, constant: 2),
+            homeLabel.centerXAnchor.constraint(equalTo: homeIcon.centerXAnchor),
+            
+            appsIcon.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor, constant: -5),
+            appsIcon.centerXAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -50),
+            appsLabel.topAnchor.constraint(equalTo: appsIcon.bottomAnchor, constant: 2),
+            appsLabel.centerXAnchor.constraint(equalTo: appsIcon.centerXAnchor)
         ])
     }
     
@@ -204,10 +262,8 @@ class MainViewController: UIViewController {
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }
-}
-
-// MARK: - TableView
-extension MainViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    // MARK: - TableView
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return modItems.count
     }
@@ -221,31 +277,37 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 85
+        return 80
     }
 }
 
-// MARK: - Custom Cell
+// MARK: - Custom Cell Giống hệt ảnh
 class ModCell: UITableViewCell {
-    private let containerView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0.1, alpha: 0.8)
-        view.layer.cornerRadius = 12
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
     private let iconView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.2, green: 0.3, blue: 0.5, alpha: 1.0)
-        view.layer.cornerRadius = 8
+        view.backgroundColor = UIColor(red: 0.1, green: 0.2, blue: 0.4, alpha: 1.0)
+        view.layer.cornerRadius = 10
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.3).cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Thêm icon cái hộp vào trong
+        let icon = UIImageView(image: UIImage(systemName: "cube.box.fill"))
+        icon.tintColor = .systemBlue
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(icon)
+        NSLayoutConstraint.activate([
+            icon.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            icon.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 20),
+            icon.heightAnchor.constraint(equalToConstant: 20)
+        ])
         return view
     }()
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.boldSystemFont(ofSize: 16)
+        label.font = UIFont.boldSystemFont(ofSize: 15)
         label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -253,7 +315,7 @@ class ModCell: UITableViewCell {
     
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 12)
+        label.font = UIFont.systemFont(ofSize: 11)
         label.textColor = .systemYellow
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -271,6 +333,7 @@ class ModCell: UITableViewCell {
     private let toggleSwitch: UISwitch = {
         let sw = UISwitch()
         sw.onTintColor = .systemBlue
+        sw.transform = CGAffineTransform(scaleX: 0.8, y: 0.8) // Thu nhỏ switch lại cho vừa
         sw.translatesAutoresizingMaskIntoConstraints = false
         return sw
     }()
@@ -285,26 +348,20 @@ class ModCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError() }
     
     private func setupCell() {
-        contentView.addSubview(containerView)
-        containerView.addSubview(iconView)
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(subtitleLabel)
-        containerView.addSubview(statusLabel)
-        containerView.addSubview(toggleSwitch)
+        contentView.addSubview(iconView)
+        contentView.addSubview(titleLabel)
+        contentView.addSubview(subtitleLabel)
+        contentView.addSubview(statusLabel)
+        contentView.addSubview(toggleSwitch)
         
         NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 5),
-            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -5),
-            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            
-            iconView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 15),
-            iconView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            iconView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            iconView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 44),
             iconView.heightAnchor.constraint(equalToConstant: 44),
             
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 12),
+            titleLabel.topAnchor.constraint(equalTo: iconView.topAnchor, constant: 2),
+            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
             
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
             subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
@@ -312,8 +369,8 @@ class ModCell: UITableViewCell {
             statusLabel.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 4),
             statusLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             
-            toggleSwitch.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            toggleSwitch.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -15)
+            toggleSwitch.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            toggleSwitch.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10)
         ])
     }
     
@@ -325,10 +382,12 @@ class ModCell: UITableViewCell {
         toggleSwitch.addTarget(self, action: #selector(toggleChanged(_:)), for: .valueChanged)
         
         statusLabel.text = isOn ? "● Đang bật · 4 quy tắc" : "● Đang tắt · 4 quy tắc"
+        statusLabel.textColor = isOn ? .systemGreen : .gray
     }
     
     @objc private func toggleChanged(_ sender: UISwitch) {
         UserDefaults.standard.set(sender.isOn, forKey: "mod_\(sender.tag)")
         statusLabel.text = sender.isOn ? "● Đang bật · 4 quy tắc" : "● Đang tắt · 4 quy tắc"
+        statusLabel.textColor = sender.isOn ? .systemGreen : .gray
     }
 }
