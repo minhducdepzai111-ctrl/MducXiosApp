@@ -7,7 +7,7 @@ class MainViewController: UIViewController, UITableViewDelegate, UITableViewData
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         // Load ảnh nền Kanha vừa tải lên
-        iv.image = UIImage(named: "bg_image") 
+        iv.image = UIImage(named: "bg_image.jpg.WEBP") 
         iv.backgroundColor = .black
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
