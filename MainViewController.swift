@@ -91,6 +91,8 @@ class MainViewController: UIViewController {
         ("AVATA AIM BOT", "Bật lúc vào game Load 40%")
     ]
     
+    private var hasCheckedLicense = false
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -100,6 +102,53 @@ class MainViewController: UIViewController {
         launchButton.addTarget(self, action: #selector(handleLaunch), for: .touchUpInside)
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Kiểm tra license khi màn hình hiện lên
+        if !hasCheckedLicense {
+            hasCheckedLicense = true
+            checkLicenseStatus()
+        }
+    }
+    
+    // MARK: - License Logic
+    private func checkLicenseStatus() {
+        let savedKey = UserDefaults.standard.string(forKey: "MducXios_SavedKey")
+        if savedKey == nil {
+            showKeyPrompt()
+        }
+    }
+    
+    private func showKeyPrompt() {
+        let alert = UIAlertController(title: "KÍCH HOẠT KEY", message: "Nhập Key MducXios để sử dụng", preferredStyle: .alert)
+        alert.addTextField { tf in
+            tf.placeholder = "Nhập Key..."
+            tf.autocapitalizationType = .none
+        }
+        
+        let activeAction = UIAlertAction(title: "Kích hoạt", style: .default) { [weak self] _ in
+            guard let key = alert.textFields?.first?.text, !key.isEmpty else { return }
+            
+            LicenseManager.shared.checkLicense(key: key) { success, msg, deviceId in
+                if success {
+                    UserDefaults.standard.set(key, forKey: "MducXios_SavedKey")
+                    let okAlert = UIAlertController(title: "Thành công", message: "Hạn dùng: \(msg)", preferredStyle: .alert)
+                    okAlert.addAction(UIAlertAction(title: "OK", style: .default))
+                    self?.present(okAlert, animated: true)
+                } else {
+                    let errAlert = UIAlertController(title: "Lỗi", message: msg, preferredStyle: .alert)
+                    errAlert.addAction(UIAlertAction(title: "Thử lại", style: .default, handler: { _ in
+                        self?.showKeyPrompt()
+                    }))
+                    self?.present(errAlert, animated: true)
+                }
+            }
+        }
+        
+        alert.addAction(activeAction)
+        self.present(alert, animated: true)
+    }
+
     private func setupUI() {
         view.backgroundColor = .black
         view.addSubview(backgroundImageView)
