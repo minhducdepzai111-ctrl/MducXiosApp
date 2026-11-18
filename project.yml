@@ -8,8 +8,7 @@ targets:
     type: application
     platform: iOS
     sources: 
-      - path: Sources
-        type: group
+      - "**/*.swift"
     info:
       path: Info.plist
     settings:
