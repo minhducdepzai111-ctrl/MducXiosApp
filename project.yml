@@ -8,10 +8,10 @@ targets:
     type: application
     platform: iOS
     sources:
-      - path: Sources/AppDelegate.swift
-      - path: Sources/SceneDelegate.swift
-      - path: Sources/MainViewController.swift
-      - path: Sources/LicenseManager.swift
+      - AppDelegate.swift
+      - SceneDelegate.swift
+      - MainViewController.swift
+      - LicenseManager.swift
     info:
       path: Info.plist
     settings:
