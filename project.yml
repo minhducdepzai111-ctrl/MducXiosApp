@@ -7,7 +7,9 @@ targets:
   MducXiosApp:
     type: application
     platform: iOS
-    sources: Sources
+    sources: 
+      - path: Sources
+        type: group
     info:
       path: Info.plist
     settings:
