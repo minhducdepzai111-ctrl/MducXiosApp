@@ -13,7 +13,7 @@ class MainViewController: UIViewController {
     
     private let overlayView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.1, green: 0.0, blue: 0.05, alpha: 0.75)
+        view.backgroundColor = UIColor(white: 0.05, alpha: 0.85)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -21,13 +21,9 @@ class MainViewController: UIViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "Free Fire VN"
-        label.font = UIFont.boldSystemFont(ofSize: 26)
+        label.font = UIFont.boldSystemFont(ofSize: 24)
         label.textColor = .white
         label.textAlignment = .center
-        label.layer.shadowColor = UIColor.systemPink.cgColor
-        label.layer.shadowRadius = 5.0
-        label.layer.shadowOpacity = 0.8
-        label.layer.shadowOffset = CGSize(width: 0, height: 0)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -37,7 +33,7 @@ class MainViewController: UIViewController {
         let sc = UISegmentedControl(items: items)
         sc.selectedSegmentIndex = 2
         sc.backgroundColor = UIColor(white: 0.1, alpha: 0.8)
-        sc.selectedSegmentTintColor = UIColor.systemPink
+        sc.selectedSegmentTintColor = .systemBlue
         sc.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .normal)
         sc.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
         sc.translatesAutoresizingMaskIntoConstraints = false
@@ -57,10 +53,10 @@ class MainViewController: UIViewController {
         let label = UILabel()
         label.text = "AUTO"
         label.font = UIFont.boldSystemFont(ofSize: 12)
-        label.textColor = UIColor.systemPink
+        label.textColor = .systemBlue
         label.textAlignment = .center
         label.layer.borderWidth = 1
-        label.layer.borderColor = UIColor.systemPink.cgColor
+        label.layer.borderColor = UIColor.systemBlue.cgColor
         label.layer.cornerRadius = 10
         label.clipsToBounds = true
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -81,14 +77,11 @@ class MainViewController: UIViewController {
         btn.setTitle("▶ Mở ứng dụng", for: .normal)
         btn.setTitleColor(.white, for: .normal)
         btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-        btn.backgroundColor = .systemPink
+        btn.backgroundColor = .systemBlue
         btn.layer.cornerRadius = 12
-        btn.clipsToBounds = true
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
-    
-    private let gradientLayer = CAGradientLayer()
     
     // MARK: - Data
     private let modItems = [
@@ -102,15 +95,9 @@ class MainViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupSnow()
         tableView.delegate = self
         tableView.dataSource = self
         launchButton.addTarget(self, action: #selector(handleLaunch), for: .touchUpInside)
-    }
-    
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        gradientLayer.frame = launchButton.bounds
     }
     
     private func setupUI() {
@@ -123,15 +110,6 @@ class MainViewController: UIViewController {
         view.addSubview(autoLabel)
         view.addSubview(tableView)
         view.addSubview(launchButton)
-        
-        gradientLayer.colors = [
-            UIColor.systemBlue.cgColor,
-            UIColor.systemRed.cgColor,
-            UIColor.systemPink.cgColor
-        ]
-        gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.5)
-        gradientLayer.endPoint = CGPoint(x: 1.0, y: 0.5)
-        launchButton.layer.insertSublayer(gradientLayer, at: 0)
         
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -172,38 +150,6 @@ class MainViewController: UIViewController {
         ])
     }
     
-    // MARK: - Snow Effect
-    private func setupSnow() {
-        let emitter = CAEmitterLayer()
-        emitter.emitterPosition = CGPoint(x: view.center.x, y: -50)
-        emitter.emitterShape = .line
-        emitter.emitterSize = CGSize(width: view.frame.size.width, height: 1)
-        emitter.zPosition = -1
-        
-        let cell = CAEmitterCell()
-        cell.birthRate = 15
-        cell.lifetime = 10.0
-        cell.velocity = 120
-        cell.velocityRange = 40
-        cell.emissionLongitude = .pi
-        cell.emissionRange = .pi / 4
-        cell.scale = 0.04
-        cell.scaleRange = 0.02
-        cell.color = UIColor(red: 1.0, green: 0.8, blue: 0.9, alpha: 0.7).cgColor
-        
-        let size = CGSize(width: 20, height: 20)
-        UIGraphicsBeginImageContext(size)
-        let context = UIGraphicsGetCurrentContext()
-        context?.setFillColor(UIColor.white.cgColor)
-        context?.fillEllipse(in: CGRect(origin: .zero, size: size))
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        cell.contents = image?.cgImage
-        emitter.emitterCells = [cell]
-        view.layer.addSublayer(emitter)
-    }
-    
     @objc private func handleLaunch() {
         if let url = URL(string: "garena-ffvn://") {
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
@@ -234,17 +180,15 @@ extension MainViewController: UITableViewDelegate, UITableViewDataSource {
 class ModCell: UITableViewCell {
     private let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.05, blue: 0.08, alpha: 0.85)
+        view.backgroundColor = UIColor(white: 0.1, alpha: 0.8)
         view.layer.cornerRadius = 12
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.systemPink.withAlphaComponent(0.3).cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
     private let iconView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        view.backgroundColor = UIColor(red: 0.2, green: 0.3, blue: 0.5, alpha: 1.0)
         view.layer.cornerRadius = 8
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -261,7 +205,7 @@ class ModCell: UITableViewCell {
     private let subtitleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 12)
-        label.textColor = .systemRed
+        label.textColor = .systemYellow
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -277,7 +221,7 @@ class ModCell: UITableViewCell {
     
     private let toggleSwitch: UISwitch = {
         let sw = UISwitch()
-        sw.onTintColor = .systemPink
+        sw.onTintColor = .systemBlue
         sw.translatesAutoresizingMaskIntoConstraints = false
         return sw
     }()
@@ -332,12 +276,10 @@ class ModCell: UITableViewCell {
         toggleSwitch.addTarget(self, action: #selector(toggleChanged(_:)), for: .valueChanged)
         
         statusLabel.text = isOn ? "● Đang bật · 4 quy tắc" : "● Đang tắt · 4 quy tắc"
-        statusLabel.textColor = isOn ? .systemPink : .gray
     }
     
     @objc private func toggleChanged(_ sender: UISwitch) {
         UserDefaults.standard.set(sender.isOn, forKey: "mod_\(sender.tag)")
         statusLabel.text = sender.isOn ? "● Đang bật · 4 quy tắc" : "● Đang tắt · 4 quy tắc"
-        statusLabel.textColor = sender.isOn ? .systemPink : .gray
     }
 }
