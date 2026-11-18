@@ -9,7 +9,6 @@ targets:
     platform: iOS
     sources:
       - AppDelegate.swift
-      - SceneDelegate.swift
       - MainViewController.swift
       - LicenseManager.swift
     info:
