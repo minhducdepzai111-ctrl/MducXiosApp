@@ -11,6 +11,8 @@ targets:
       - AppDelegate.swift
       - MainViewController.swift
       - LicenseManager.swift
+    resources:
+      - bg_image.jpg.WEBP
     info:
       path: Info.plist
     settings:
